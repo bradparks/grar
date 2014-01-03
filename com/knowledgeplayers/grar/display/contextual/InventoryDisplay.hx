@@ -1,5 +1,6 @@
 package com.knowledgeplayers.grar.display.contextual;
 
+import com.knowledgeplayers.grar.controller.GameManager;
 import com.knowledgeplayers.grar.display.component.Widget;
 import flash.display.DisplayObject;
 import com.knowledgeplayers.grar.structure.Token;

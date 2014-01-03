@@ -1,5 +1,6 @@
 package com.knowledgeplayers.grar.display.contextual;
 
+import com.knowledgeplayers.grar.controller.GameManager;
 import com.knowledgeplayers.grar.factory.GuideFactory;
 import com.knowledgeplayers.grar.event.PartEvent;
 import flash.events.Event;

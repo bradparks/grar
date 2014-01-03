@@ -1,5 +1,6 @@
 package com.knowledgeplayers.grar.display.element;
 
+import com.knowledgeplayers.grar.controller.GameManager;
 import com.knowledgeplayers.grar.display.component.container.WidgetContainer;
 import aze.display.TileLayer;
 import aze.display.TileSprite;

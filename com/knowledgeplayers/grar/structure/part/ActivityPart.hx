@@ -1,7 +1,7 @@
 package com.knowledgeplayers.grar.structure.part;
 
 import haxe.ds.GenericStack;
-import com.knowledgeplayers.grar.display.GameManager;
+import com.knowledgeplayers.grar.controller.GameManager;
 import com.knowledgeplayers.grar.util.ParseUtils;
 import haxe.xml.Fast;
 

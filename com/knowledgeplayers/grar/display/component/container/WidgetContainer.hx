@@ -75,13 +75,14 @@ class WidgetContainer extends Widget{
 
 	public var renderNeeded: Bool = false;
 
+	public var zIndex: Int = 0;
+
 	private var scrollBarName: String;
 	private var scrollBar:ScrollBar;
 	private var scrollNeeded:Bool;
 	private var layer: TileLayer;
 	private var displays: Map<String, Widget>;
 	private var buttonGroups: Map<String, GenericStack<DefaultButton>>;
-	private var zIndex: Int = 0;
 
 	public function set_contentAlpha(alpha: Float):Float
 	{

@@ -1,5 +1,6 @@
 package com.knowledgeplayers.grar.display.component;
 
+import com.knowledgeplayers.grar.controller.GameManager;
 import com.knowledgeplayers.grar.util.DisplayUtils;
 import com.knowledgeplayers.grar.display.component.container.WidgetContainer;
 import aze.display.TileClip;

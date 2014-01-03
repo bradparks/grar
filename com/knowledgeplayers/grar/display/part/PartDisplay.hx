@@ -1,5 +1,6 @@
 package com.knowledgeplayers.grar.display.part;
 
+import com.knowledgeplayers.grar.structure.part.StructurePart;
 import com.knowledgeplayers.grar.display.element.Timeline;
 import com.knowledgeplayers.grar.display.component.container.SoundPlayer;
 import com.knowledgeplayers.grar.structure.part.sound.item.SoundItem;
@@ -9,12 +10,11 @@ import com.knowledgeplayers.grar.structure.part.video.item.VideoItem;
 import com.knowledgeplayers.grar.display.component.container.VideoPlayer;
 import com.knowledgeplayers.grar.display.component.Widget;
 import com.knowledgeplayers.grar.display.component.Image;
-import com.knowledgeplayers.grar.display.GameManager;
 import com.knowledgeplayers.grar.display.component.container.DefaultButton;
 import com.knowledgeplayers.grar.display.component.container.ScrollPanel;
 import com.knowledgeplayers.grar.display.contextual.InventoryDisplay;
 import com.knowledgeplayers.grar.display.component.CharacterDisplay;
-import com.knowledgeplayers.grar.display.GameManager;
+import com.knowledgeplayers.grar.controller.GameManager;
 import com.knowledgeplayers.grar.display.ResizeManager;
 import com.knowledgeplayers.grar.display.TweenManager;
 import com.knowledgeplayers.grar.event.ButtonActionEvent;
@@ -61,6 +61,10 @@ class PartDisplay extends KpDisplay {
 	private var numWidgetReady: Int;
 	private var nextTimeline: String;
 
+	dynamic public function onExit(part: PartDisplay):Void {}
+	dynamic public function onEnterSubPart(subpart: StructurePart): Void {}
+	dynamic public function onGameOver():Void{}
+
 	/**
      * Constructor
      * @param	part : Part to display
@@ -101,7 +105,7 @@ class PartDisplay extends KpDisplay {
 		unLoad();
 		if(part.file != null)
 			Localiser.instance.popLocale();
-		dispatchEvent(new PartEvent(PartEvent.EXIT_PART));
+		onExit(this);
 	}
 
 	/**
@@ -119,7 +123,7 @@ class PartDisplay extends KpDisplay {
 		}
 		if(currentElement.endScreen){
 			part.isDone = true;
-			dispatchEvent(new GameEvent(GameEvent.GAME_OVER));
+			onGameOver();
 		}
 
 		if(Std.is(currentElement, Item)){
@@ -159,9 +163,7 @@ class PartDisplay extends KpDisplay {
 
 		else if(currentElement.isPart()){
 			cleanDisplay();
-			var event = new PartEvent(PartEvent.ENTER_SUB_PART);
-			event.part = cast(currentElement, Part);
-			dispatchEvent(event);
+			onEnterSubPart(currentElement);
 		}
 	}
 
@@ -258,9 +260,7 @@ class PartDisplay extends KpDisplay {
 	private function checkPartLoaded():Void
 	{
 		if(localeLoaded && displayLoaded){
-			var event = new PartEvent(PartEvent.PART_LOADED);
-			event.part = part;
-			dispatchEvent(event);
+			onLoaded(part);
 		}
 	}
 

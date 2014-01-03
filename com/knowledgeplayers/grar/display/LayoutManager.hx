@@ -1,17 +1,10 @@
 package com.knowledgeplayers.grar.display;
 
 import com.knowledgeplayers.grar.display.layout.Layout;
-
-import com.knowledgeplayers.grar.event.PartEvent;
 import com.knowledgeplayers.grar.localisation.Localiser;
 import haxe.xml.Fast;
-import flash.events.EventDispatcher;
 
-class LayoutManager extends EventDispatcher {
-	/**
-    * Instance of the manager
-    **/
-	public static var instance (get_instance, null):LayoutManager;
+class LayoutManager{
 
 	/**
 	* Localisation file for the interface
@@ -22,16 +15,19 @@ class LayoutManager extends EventDispatcher {
 
 	private var layouts:Map<String, Layout>;
 
-	public static function get_instance():LayoutManager
+	/**
+    * Layout Display
+    **/
+
+	public function new():Void
 	{
-		if(instance == null)
-			instance = new LayoutManager();
-		return instance;
+		super();
+		layouts = new Map<String, Layout>();
 	}
 
 	/**
-    * @return the layout with the given ref
-    **/
+	* @return the layout with the given ref
+	**/
 
 	public function getLayout(ref:String):Layout
 	{
@@ -39,8 +35,8 @@ class LayoutManager extends EventDispatcher {
 	}
 
 	/**
-    * Parsing du Xml
-    **/
+	* Parsing du Xml
+	**/
 
 	public function parseXml(xml:Xml):Void
 	{
@@ -63,16 +59,8 @@ class LayoutManager extends EventDispatcher {
 
 			layouts.set(layout.name, layout);
 		}
-		dispatchEvent(new PartEvent(PartEvent.PART_LOADED));
+		onLoaded();
 	}
 
-	/**
-    * Layout Display
-    **/
-
-	private function new():Void
-	{
-		super();
-		layouts = new Map<String, Layout>();
-	}
+	dynamic public function onLoaded():Void {}
 }

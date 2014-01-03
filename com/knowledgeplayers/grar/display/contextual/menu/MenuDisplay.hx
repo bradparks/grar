@@ -11,7 +11,7 @@ import haxe.xml.Fast;
 import com.knowledgeplayers.grar.localisation.Localiser;
 import com.knowledgeplayers.grar.display.contextual.ContextualDisplay;
 import com.knowledgeplayers.grar.display.component.container.DefaultButton;
-import com.knowledgeplayers.grar.display.GameManager;
+import com.knowledgeplayers.grar.controller.GameManager;
 import com.knowledgeplayers.grar.event.PartEvent;
 import haxe.xml.Fast;
 import flash.display.Shape;

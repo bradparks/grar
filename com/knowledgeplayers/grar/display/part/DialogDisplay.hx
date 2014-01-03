@@ -1,7 +1,7 @@
 package com.knowledgeplayers.grar.display.part;
 
+import com.knowledgeplayers.grar.controller.GameManager;
 import com.knowledgeplayers.grar.structure.part.Item;
-import com.knowledgeplayers.grar.structure.part.PartElement;
 import flash.events.Event;
 import com.knowledgeplayers.grar.structure.part.Part;
 import com.knowledgeplayers.grar.display.component.container.DefaultButton;
@@ -16,7 +16,6 @@ import flash.events.MouseEvent;
 /**
  * Display of a dialog
  */
-
 class DialogDisplay extends PartDisplay {
 
 	/**
@@ -57,8 +56,12 @@ class DialogDisplay extends PartDisplay {
 		if(Std.is(currentPattern, ChoicePattern)){
 			var choicePattern = cast(currentPattern, ChoicePattern);
 			// Init button with choice's view state
-			for(choice in choicePattern.choices.keys())
-				cast(displays.get(choice), DefaultButton).toggle(!choicePattern.choices.get(choice).viewed);
+			for(choice in choicePattern.choices.keys()){
+				if(displays.exists(choice))
+					cast(displays.get(choice), DefaultButton).toggle(!choicePattern.choices.get(choice).viewed);
+				else
+					throw "[DialogDisplay] There is no choice display with ref '"+choice+"'.";
+			}
 			if(choicePattern.minimumChoice == choicePattern.numChoices){
 				exitPattern = true;
 			}

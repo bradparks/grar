@@ -1,6 +1,6 @@
 package;
 
-import com.knowledgeplayers.grar.display.GameManager;
+import com.knowledgeplayers.grar.controller.GameManager;
 import com.knowledgeplayers.grar.structure.part.Part;
 import com.knowledgeplayers.grar.structure.part.StructurePart;
 import com.knowledgeplayers.grar.structure.KpGame;

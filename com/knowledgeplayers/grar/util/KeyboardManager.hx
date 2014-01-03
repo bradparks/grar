@@ -2,7 +2,7 @@ package com.knowledgeplayers.grar.util;
 
 import com.knowledgeplayers.grar.display.TweenManager;
 import com.knowledgeplayers.grar.display.part.DialogDisplay;
-import com.knowledgeplayers.grar.display.GameManager;
+import com.knowledgeplayers.grar.controller.GameManager;
 import flash.events.KeyboardEvent;
 import flash.Lib;
 import flash.ui.Keyboard;

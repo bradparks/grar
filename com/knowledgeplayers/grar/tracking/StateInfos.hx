@@ -1,7 +1,7 @@
 package com.knowledgeplayers.grar.tracking;
 
 import com.knowledgeplayers.grar.structure.Game;
-import com.knowledgeplayers.grar.display.GameManager;
+import com.knowledgeplayers.grar.controller.GameManager;
 
 class StateInfos {
 	public var currentLanguage (default, default):String;

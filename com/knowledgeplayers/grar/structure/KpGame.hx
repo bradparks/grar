@@ -1,22 +1,8 @@
 package com.knowledgeplayers.grar.structure;
 
-import com.knowledgeplayers.grar.util.DisplayUtils;
-import com.knowledgeplayers.utils.assets.loaders.concrete.TextAsset;
-import com.knowledgeplayers.grar.display.contextual.ContextualDisplay.ContextualType;
+import com.knowledgeplayers.grar.structure.part.StructurePart;
 import com.knowledgeplayers.grar.display.contextual.menu.MenuDisplay;
-import com.knowledgeplayers.grar.structure.contextual.Bibliography;
-import com.knowledgeplayers.grar.structure.contextual.Glossary;
-import com.knowledgeplayers.grar.structure.contextual.Notebook;
-import com.knowledgeplayers.grar.display.FilterManager;
-import com.knowledgeplayers.utils.assets.AssetsStorage;
-import com.knowledgeplayers.grar.display.GameManager;
-import com.knowledgeplayers.grar.display.LayoutManager;
-import com.knowledgeplayers.grar.display.style.StyleParser;
-import com.knowledgeplayers.grar.display.TweenManager;
-import com.knowledgeplayers.grar.display.contextual.NotebookDisplay;
-import com.knowledgeplayers.grar.event.PartEvent;
 import com.knowledgeplayers.grar.factory.PartFactory;
-import com.knowledgeplayers.grar.factory.UiFactory;
 import com.knowledgeplayers.grar.localisation.Localiser;
 import com.knowledgeplayers.grar.structure.part.Part;
 import com.knowledgeplayers.grar.tracking.Connection;
@@ -99,100 +85,13 @@ class KpGame extends EventDispatcher #if haxe3 implements Game #else ,implements
         parts = new Array<Part>();
         inventory = new Array<Token>();
 
-        GameManager.instance.game = this;
-
         Lib.current.stage.addEventListener(Event.DEACTIVATE, onExit);
-        LayoutManager.instance.addEventListener(PartEvent.PART_LOADED, onPartLoaded);
     }
 
-	/**
-     * Initialize the game with a xml structure
-     * @param	xml : the structure
-     */
-    public function init(xml:Xml):Void
-    {
-        structureXml = new Fast(xml);
-
-        var parametersNode:Fast = structureXml.node.Grar.node.Parameters;
-        var displayNode:Fast = structureXml.node.Grar.node.Display;
-
-        mode = Type.createEnum(Mode, parametersNode.node.Mode.innerData);
-        state = parametersNode.node.State.innerData;
-	    id = parametersNode.node.Id.innerData;
-
-	    // Load Xml templates
-	    if(displayNode.hasNode.Templates){
-		    var templateFolder = displayNode.node.Templates.att.folder;
-		    var templates = AssetsStorage.getFolderContent(templateFolder, "xml");
-		    var xmlList = new List<Xml>();
-		    for(temp in templates)
-				xmlList.add(cast(temp, TextAsset).getXml());
-		    DisplayUtils.loadTemplates(xmlList);
-	    }
-
-    	// Start Tracking
-
-        initTracking();
-
-    	// Load UI
-        UiFactory.setSpriteSheet(displayNode.node.Ui.att.display);
-
-    	// Load styles
-        for(stylesheet in displayNode.nodes.Style){
-            var fullPath = stylesheet.att.file.split("/");
-
-            var localePath:StringBuf = new StringBuf();
-            for(i in 0...fullPath.length - 1){
-                localePath.add(fullPath[i] + "/");
-            }
-            localePath.add(Localiser.instance.currentLocale + "/");
-            localePath.add(fullPath[fullPath.length - 1]);
-	        var extension = localePath.toString().split(".");
-            StyleParser.parse(AssetsStorage.getText(localePath.toString()), extension[extension.length-1]);
-        }
-
-        // Load Languages
-        initLangs(AssetsStorage.getXml(parametersNode.node.Languages.att.file));
-
-        // Load Transition
-        if(displayNode.hasNode.Transitions)
-            TweenManager.loadTemplate(displayNode.node.Transitions.att.display);
-
-        // Load filters
-        if(displayNode.hasNode.Filters)
-            FilterManager.loadTemplate(displayNode.node.Filters.att.display);
-
-		// Load contextual
-		var structureNode:Fast = structureXml.node.Grar.node.Structure;
-		for(contextual in structureNode.nodes.Contextual){
-			var display = AssetsStorage.getXml(contextual.att.display);
-			var contextualType: ContextualType = Type.createEnum(ContextualType, contextual.att.type.toUpperCase());
-			switch(contextualType){
-				case NOTEBOOK:    NotebookDisplay.instance.parseContent(display);
-								  NotebookDisplay.instance.model = new Notebook(contextual.att.file);
-				case GLOSSARY:    Glossary.instance.fillWithXml(contextual.att.file);
-				case BIBLIOGRAPHY:Bibliography.instance.fillWithXml(contextual.att.file);
-				case MENU :       MenuDisplay.instance.parseContent(display);
-								  if(contextual.has.file)
-								    menu = AssetsStorage.getXml(contextual.att.file);
-				default: null;
-			}
-		}
-
-        if(structureNode.has.inventory)
-            GameManager.instance.loadTokens(structureNode.att.inventory);
-
-        ref = structureNode.att.ref;
-        // Count parts
-        for(part in structureNode.nodes.Part){
-            numParts++;
-        }
-
-        // Load them
-        for(part in structureNode.nodes.Part){
-            addPartFromXml(part.att.id, part);
-        }
-    }
+    /**
+	* Called when the game is fully loaded
+	**/
+	dynamic public function onGameLoaded(layout:String = "default"):Void {}
 
 	/**
      * Start the game
@@ -229,14 +128,19 @@ class KpGame extends EventDispatcher #if haxe3 implements Game #else ,implements
         return nextPart;
     }
 
+	public function onLayoutLoaded():Void
+	{
+		layoutLoaded = true;
+	}
+
 	/**
      * Add a part to the game at partIndex
      * @param	partId : ID of the part
      * @param	part : the part to add
      */
-    public function addPart(partId:String, part:Part):Void
+    public function addPart(partId:String, part:StructurePart):Void
     {
-        part.addEventListener(PartEvent.PART_LOADED, onPartLoaded);
+        part.onLoaded = onPartLoaded;
         parts.push(part);
     }
 
@@ -373,6 +277,12 @@ class KpGame extends EventDispatcher #if haxe3 implements Game #else ,implements
 
     // Handlers
 
+	private function onPartLoaded():Void
+	{
+		nbPartsLoaded++;
+		checkLoading();
+	}
+
     private function createMenuXml(xml:Xml, part:Part, level:Int = 1):Void
     {
         var child = Xml.createElement("h" + level);
@@ -388,16 +298,6 @@ class KpGame extends EventDispatcher #if haxe3 implements Game #else ,implements
                 child.addChild(item);
             }
         }
-    }
-
-    private function onPartLoaded(event:PartEvent):Void
-    {
-        if(event.target == LayoutManager.instance)
-            layoutLoaded = true;
-        else{
-            nbPartsLoaded++;
-        }
-        checkLoading();
     }
 
     private function checkLoading():Void
@@ -418,12 +318,9 @@ class KpGame extends EventDispatcher #if haxe3 implements Game #else ,implements
 	                stateInfos.loadStateInfos(stateInfos.tmpState);
 	            for(part in getAllParts())
                     part.isDone = stateInfos.isPartFinished(part.id);
-                // Load Layout
-                LayoutManager.instance.parseXml(AssetsStorage.getXml(structureXml.node.Grar.node.Parameters.node.Layout.att.file));
             }
             else{
-                // Menu must be init after the event is dispatched. Trust me.
-	            dispatchEvent(new PartEvent(PartEvent.PART_LOADED));
+	            onGameLoaded(ref);
 	            if(MenuDisplay.instance.exists)
                     MenuDisplay.instance.init();
             }

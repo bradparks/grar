@@ -1,22 +1,17 @@
 package com.knowledgeplayers.grar.structure.part;
 
+import com.knowledgeplayers.grar.structure.part.sound.item.SoundItem;
+import com.knowledgeplayers.grar.structure.part.video.item.VideoItem;
 import com.knowledgeplayers.grar.structure.score.Perk;
 import com.knowledgeplayers.grar.structure.score.ScoreChart;
 import com.knowledgeplayers.grar.util.ParseUtils;
 import com.knowledgeplayers.grar.event.PartEvent;
-import com.knowledgeplayers.grar.factory.ItemFactory;
 import com.knowledgeplayers.grar.factory.PartFactory;
-import com.knowledgeplayers.grar.structure.part.Pattern;
-import com.knowledgeplayers.grar.structure.part.TextItem;
-import com.knowledgeplayers.grar.tracking.Trackable;
 import com.knowledgeplayers.utils.assets.AssetsStorage;
 import haxe.ds.GenericStack;
 import haxe.xml.Fast;
-import flash.events.EventDispatcher;
-import flash.media.Sound;
-import flash.media.SoundChannel;
 
-class StructurePart extends EventDispatcher implements Part{
+class StructurePart {
 	/**
      * Name of the part
      */
@@ -40,7 +35,7 @@ class StructurePart extends EventDispatcher implements Part{
 	/**
 	* Parent of this part
 	**/
-	public var parent (default, default):Part;
+	public var parent (default, default):StructurePart;
 
 	/**
      * True if the part is done
@@ -55,12 +50,7 @@ class StructurePart extends EventDispatcher implements Part{
 	/**
      * Sound playing during the part
      */
-	public var soundLoop (default, default):Sound;
-
-	/**
-    * Elements of the part
-	**/
-	public var elements (default, null):Array<PartElement>;
+	public var soundLoop (default, default):String;
 
 	/**
     * Button of the part
@@ -95,20 +85,46 @@ class StructurePart extends EventDispatcher implements Part{
 
 	private var nbSubPartLoaded:Int = 0;
 	private var nbSubPartTotal:Int = 0;
-	private var partIndex:Int = 0;
 	private var elemIndex:Int = 0;
-	private var soundLoopChannel:SoundChannel;
 	private var loaded:Bool = false;
+
+	////// Elements
+	/**
+    * Flow of the part
+	**/
+	private var elements (default, null):Array<ElementType>;
+	public var textElements:Array<TextItem>;
+	private var textIndex:Int;
+	public var partElements:Array<StructurePart>;
+	private var partIndex:Int;
+	public var videoElements:Array<VideoItem>;
+	private var videoIndex:Int;
+	public var soundElements:Array<SoundItem>;
+	private var soundIndex:Int;
+
+	/**
+	* Called when the part is fully loaded
+	**/
+	dynamic public function onLoaded():Void {}
 
 	public function new()
 	{
 		super();
 		tokens = new GenericStack<String>();
-		elements = new Array<PartElement>();
 		buttons = new Map<String, Map<String, String>>();
 		buttonTargets = new Map<String, PartElement>();
 		perks = new Map<String, Int>();
 		requirements = new Map<String, Int>();
+
+		elements = new Array<ElementType>();
+		textElements = new Array<TextItem>();
+		partElements = new Array<StructurePart>();
+		videoElements = new Array<VideoItem>();
+		soundElements = new Array<SoundItem>();
+		textIndex = 0;
+		partIndex = 0;
+		videoIndex = 0;
+		soundIndex = 0;
 	}
 
 		/**
@@ -136,8 +152,6 @@ class StructurePart extends EventDispatcher implements Part{
 			if(parent != null)
 				file = parent.file;
 		}
-		else
-			fireLoaded();
 	}
 
 	/**
@@ -405,77 +419,6 @@ class StructurePart extends EventDispatcher implements Part{
 
 	// Private
 
-	private function parseContent(content:Xml):Void
-	{
-		var partFast:Fast = (content.nodeType == Xml.Element && content.nodeName == "Part") ? new Fast(content) : new Fast(content).node.Part;
-
-		parseHeader(partFast);
-
-		for(child in partFast.elements){
-			parseElement(child);
-		}
-		for(elem in elements){
-			if(elem.isText() || elem.isVideo()|| elem.isSound()){
-				var text = cast(elem, Item);
-				if(text.button == null || Lambda.empty(text.button))
-					text.button = buttons;
-			}
-			if(elem.isPattern()){
-				for(item in cast(elem, Pattern).patternContent){
-					for(image in item.tokens)
-						tokens.add(image);
-				}
-			}
-			for(image in elem.tokens)
-				tokens.add(image);
-		}
-		loaded = true;
-		if(nbSubPartLoaded == nbSubPartTotal)
-			fireLoaded();
-	}
-
-	private function parseElement(node:Fast):Void
-	{
-		switch(node.name.toLowerCase()){
-			case "text":
-				elements.push(ItemFactory.createItemFromXml(node));
-			case "part":
-				createPart(node);
-			case "sound":
-				soundLoop = AssetsStorage.getSound(node.att.content);
-			case "button":
-				var content = null;
-				if(node.has.content)
-					content = ParseUtils.parseHash(node.att.content);
-				buttons.set(node.att.ref, content);
-				if(node.has.goTo){
-					if(node.att.goTo == "")
-						buttonTargets.set(node.att.ref, null);
-					else{
-						var i = 0;
-						while((!elements[i].isText() || cast(elements[i], TextItem).content != node.att.goTo) && i < elements.length){
-							i++;
-						}
-						if(i != elements.length)
-							buttonTargets.set(node.att.ref, elements[i]);
-					}
-				}
-		}
-	}
-
-	/**
-	* Common attributes between xml tag and part file
-	**/
-	private function parseHeader(xml: Fast): Void
-	{
-		if(xml.has.name) name = xml.att.name;
-		if(xml.has.file) file = xml.att.file;
-		if(xml.has.display) display = xml.att.display;
-		if(xml.has.next) next = xml.att.next;
-		if(xml.has.bounty) setPerks(xml.att.bounty);
-		if(xml.has.requires) setPerks(xml.att.requires, requirements);
-	}
-
 	private function parseXml(xml:Fast):Void
 	{
 		id = xml.att.id;
@@ -512,20 +455,13 @@ class StructurePart extends EventDispatcher implements Part{
 			soundLoopChannel = soundLoop.play();
 	}
 
-	private function onPartLoaded(event:PartEvent):Void
+	/*private function onPartLoaded(event:PartEvent):Void
 	{
 		nbSubPartLoaded++;
 		if(nbSubPartLoaded == nbSubPartTotal && loaded){
 			fireLoaded();
 		}
-	}
-
-	private function fireLoaded():Void
-	{
-		var ev = new PartEvent(PartEvent.PART_LOADED);
-		ev.part = this;
-		dispatchEvent(ev);
-	}
+	}*/
 
 	private function setPerks(perks: String, ?hash: Map<String, Int>):Void
 	{
@@ -536,4 +472,12 @@ class StructurePart extends EventDispatcher implements Part{
 			hash.set(perk, Std.parseInt(map.get(perk)));
 		}
 	}
+}
+
+enum ElementType {
+	PART;
+	TEXT;
+	VIDEO;
+	PATTERN;
+	SOUND;
 }

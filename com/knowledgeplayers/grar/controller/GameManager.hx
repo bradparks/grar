@@ -1,57 +1,35 @@
-package com.knowledgeplayers.grar.display;
+package com.knowledgeplayers.grar.controller;
 
-#if flash
-import flash.system.System;
-import flash.external.ExternalInterface;
-#end
-import flash.net.URLRequest;
+import com.knowledgeplayers.grar.services.ModuleService;
+import com.knowledgeplayers.grar.structure.part.StructurePart;
+import com.knowledgeplayers.grar.structure.KpGame;
+import com.knowledgeplayers.grar.display.KpDisplay;
 import com.knowledgeplayers.grar.util.ParseUtils;
 import com.knowledgeplayers.grar.display.contextual.BibliographyDisplay;
 import com.knowledgeplayers.grar.display.contextual.GlossaryDisplay;
 import com.knowledgeplayers.grar.display.contextual.GlossaryDisplay;
 import com.knowledgeplayers.grar.display.contextual.NotebookDisplay;
 import com.knowledgeplayers.grar.display.contextual.menu.MenuDisplay;
-import com.knowledgeplayers.grar.tracking.Trackable;
 import com.knowledgeplayers.grar.localisation.Localiser;
-import com.knowledgeplayers.grar.localisation.Localiser;
-import com.knowledgeplayers.grar.display.contextual.ContextualDisplay;
 import com.knowledgeplayers.grar.display.element.TokenNotification;
 import com.knowledgeplayers.grar.display.layout.Layout;
 import com.knowledgeplayers.grar.display.LayoutManager;
 import com.knowledgeplayers.grar.display.part.PartDisplay;
-import com.knowledgeplayers.grar.event.GameEvent;
-import com.knowledgeplayers.grar.event.PartEvent;
-import com.knowledgeplayers.grar.event.TokenEvent;
 import com.knowledgeplayers.grar.factory.DisplayFactory;
-import com.knowledgeplayers.grar.structure.Game;
-import com.knowledgeplayers.grar.structure.part.Part;
 import com.knowledgeplayers.grar.structure.Token;
 import com.knowledgeplayers.grar.util.KeyboardManager;
-import com.knowledgeplayers.utils.assets.AssetsStorage;
 import haxe.ds.GenericStack;
 import haxe.xml.Fast;
-import flash.display.BitmapData;
-import flash.events.Event;
-import flash.events.EventDispatcher;
-import flash.Lib;
-import flash.media.Sound;
-import flash.media.SoundChannel;
-import flash.media.SoundTransform;
-import flash.net.URLRequest;
 
 /**
  * Display of a game
  */
-class GameManager extends EventDispatcher {
-	/**
-    * Instance of the game manager
-    **/
-	public static var instance (get_instance, null):GameManager;
+class GameManager{
 
 	/**
      * The game model
      */
-	public var game (default, default):Game;
+	public var game (default, default):KpGame;
 
 	/**
      * Queue of parts managed in the game
@@ -85,16 +63,24 @@ class GameManager extends EventDispatcher {
 	private var startIndex:Int;
 	private var lastContextual: KpDisplay;
 	private var sounds:Map<String, Sound>;
+	private var moduleService:ModuleService;
 
-		/**
-    * @return the instance of the singleton
-    **/
-
-	public static function get_instance():GameManager
+	public function new()
 	{
-		if(instance == null)
-			instance = new GameManager();
-		return instance;
+		parts = new GenericStack<PartDisplay>();
+		inventory = new Map<String, Token>();
+		tokensImages = new Map<String, {small:BitmapData, large:BitmapData}>();
+		sounds = new Map<String, Sound>();
+		KeyboardManager.init();
+		moduleService = new ModuleService();
+	}
+	/**
+	* Initialize model
+	**/
+	public function init():Void
+	{
+		game = moduleService.fetchModule("structure.xml", this);
+		startGame(game.ref);
 	}
 
 	/**
@@ -102,10 +88,8 @@ class GameManager extends EventDispatcher {
     * @param    game : The game to start
     * @param    layout : The layout to display
     **/
-
-	public function startGame(game:Game, layout:String = "default"):Void
+	public function startGame(layout:String = "default"):Void
 	{
-		this.game = game;
 		changeLayout(layout);
 		if(!MenuDisplay.instance.exists || menuLoaded){
 			launchGame();
@@ -116,7 +100,6 @@ class GameManager extends EventDispatcher {
     * Activate a token of the inventory
     * @param    tokenName : Name of the token to activate
     **/
-
 	public function activateToken(tokenName:String):Void
 	{
 		if(!inventory.exists(tokenName))
@@ -234,25 +217,32 @@ class GameManager extends EventDispatcher {
 		if(interrupt){
 			var oldPart = parts.pop();
 			if(oldPart != null){
-				oldPart.removeEventListener(PartEvent.EXIT_PART, onExitPart);
 				oldPart.exitPart();
 			}
 		}
-		if(!parts.isEmpty())
-			parts.first().removeEventListener(PartEvent.PART_LOADED, onPartLoaded);
 		// Display the new part
-		parts.add(DisplayFactory.createPartDisplay(part));
+		var newPart: PartDisplay = DisplayFactory.createPartDisplay(part);
+		parts.add(newPart);
 		startIndex = startPosition;
-		parts.first().addEventListener(PartEvent.EXIT_PART, onExitPart);
-		parts.first().addEventListener(PartEvent.ENTER_SUB_PART, onEnterSubPart);
-		parts.first().addEventListener(PartEvent.PART_LOADED, onPartLoaded);
-		parts.first().addEventListener(GameEvent.GAME_OVER, function(e:GameEvent)
-		{
-			game.connection.tracking.setStatus(true);
-			game.connection.computeTracking(game.stateInfos);
-			dispatchEvent(new GameEvent(GameEvent.GAME_OVER));
-		});
-		parts.first().init();
+
+		// Binding view
+		newPart.onExit =  onExitPart;
+		newPart.onEnterSubPart = onEnterSubPart;
+		newPart.onGameOver = endGame;
+
+		newPart.init();
+
+		setBookmark(part.id);
+
+		newPart.startPart(startIndex);
+		if(newPart.visible && newPart.layout != null)
+			changeLayout(newPart.layout);
+		layout.zones.get(game.ref).addChild(newPart);
+		layout.updateDynamicFields();
+		var event = new PartEvent(PartEvent.ENTER_PART);
+		event.part = partDisplay.part;
+		dispatchEvent(event);
+
 		return true;
 	}
 
@@ -325,8 +315,8 @@ class GameManager extends EventDispatcher {
 	**/
 	public function quitGame():Void
 	{
-		if (GameManager.instance.game.connection.tracking.suivi != "")
-			GameManager.instance.game.connection.tracking.exitAU();
+		if (game.connection.tracking.suivi != "")
+			game.connection.tracking.exitAU();
 
 		#if flash
 		if (ExternalInterface.available)
@@ -370,9 +360,9 @@ class GameManager extends EventDispatcher {
 
 	// Handlers
 
-	private function onExitPart(event:Event):Void
+	private function onExitPart(display: PartDisplay):Void
 	{
-		finishPart(cast(event.target.part, Part).id);
+		finishPart(display.part.id);
 		var finishedPart = parts.pop();
 
 		if(finishedPart.part.next != null && finishedPart.part.next != ""){
@@ -404,28 +394,12 @@ class GameManager extends EventDispatcher {
 				changeLayout(parts.first().layout);
 		}
 		else
-			dispatchEvent(new GameEvent(GameEvent.GAME_OVER));
+			endGame();
 	}
 
-	public inline function onEnterSubPart(e:PartEvent):Void
+	public inline function onEnterSubPart(part: StructurePart):Void
 	{
-		displayPartById(e.part.id);
-	}
-
-	private function onPartLoaded(e:PartEvent):Void
-	{
-		setBookmark(e.partId);
-		var partDisplay = cast(e.target, PartDisplay);
-
-		partDisplay.removeEventListener(PartEvent.PART_LOADED, onPartLoaded);
-		partDisplay.startPart(startIndex);
-		if(partDisplay.visible && partDisplay.layout != null)
-		changeLayout(partDisplay.layout);
-		layout.zones.get(game.ref).addChild(partDisplay);
-		layout.updateDynamicFields();
-		var event = new PartEvent(PartEvent.ENTER_PART);
-		event.part = partDisplay.part;
-		dispatchEvent(event);
+		displayPartById(part.id);
 	}
 
 	private function setBookmark(partId:String):Void
@@ -440,13 +414,9 @@ class GameManager extends EventDispatcher {
 		}
 	}
 
-	private function new()
+	private function endGame():Void
 	{
-		super();
-		parts = new GenericStack<PartDisplay>();
-		inventory = new Map<String, Token>();
-		tokensImages = new Map<String, {small:BitmapData, large:BitmapData}>();
-		sounds = new Map<String, Sound>();
-		KeyboardManager.init();
+		game.connection.tracking.setStatus(true);
+		game.connection.computeTracking(game.stateInfos);
 	}
 }

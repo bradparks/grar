@@ -1,6 +1,6 @@
 package com.knowledgeplayers.grar.structure.contextual;
 
-import com.knowledgeplayers.grar.display.GameManager;
+import com.knowledgeplayers.grar.controller.GameManager;
 import com.knowledgeplayers.grar.structure.contextual.Note;
 import haxe.ds.GenericStack;
 import haxe.xml.Fast;

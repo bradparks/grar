@@ -10,7 +10,7 @@ import com.knowledgeplayers.grar.util.ParseUtils;
 import com.knowledgeplayers.grar.structure.part.Item;
 import haxe.ds.GenericStack;
 import com.knowledgeplayers.grar.localisation.Localiser;
-import com.knowledgeplayers.grar.display.GameManager;
+import com.knowledgeplayers.grar.controller.GameManager;
 import com.knowledgeplayers.grar.util.guide.Guide;
 import haxe.xml.Fast;
 import com.knowledgeplayers.grar.display.component.container.DefaultButton;

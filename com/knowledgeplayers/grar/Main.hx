@@ -1,15 +1,12 @@
 package com.knowledgeplayers.grar;
 
-import com.knowledgeplayers.grar.display.GameManager;
-import com.knowledgeplayers.grar.event.PartEvent;
-import com.knowledgeplayers.grar.structure.Game;
-import com.knowledgeplayers.grar.structure.KpGame;
-import com.knowledgeplayers.utils.assets.AssetsStorage;
+import com.knowledgeplayers.grar.controller.GameManager;
 
 class Main {
 
-	private var game:Game;
-
+	/**
+	* Passer des paramètres d'entrée (Flash vars,...)
+	**/
 	public static function main()
 	{
 
@@ -25,17 +22,16 @@ class Main {
 
 	public function new()
 	{
-		// Create a new game
-		game = new KpGame();
+		// Create main controller
+		var controller = new GameManager();
 
-		game.addEventListener(PartEvent.PART_LOADED, onLoadingComplete);
-		game.init(AssetsStorage.getXml("structure.xml"));
-	}
-
-	private function onLoadingComplete(e:PartEvent):Void
-	{
-		GameManager.instance.startGame(game);
+		// Initialize model
+		controller.init();
 	}
 }
+
+// TODO
+// Exposer une API ?
+// ModelConfig.hx pour garder la config initiale
 
 
